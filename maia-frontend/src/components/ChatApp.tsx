@@ -25,17 +25,20 @@ export default function ChatApp() {
   // ── auth check ────────────────────────────────────────────
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    // onAuthStateChange dispara imediatamente com a sessão atual (incluindo
+    // a sessão recém-criada pelo callback PKCE), antes de getSession() resolver.
+    // Usar apenas onAuthStateChange evita o race condition que causava loop.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
         window.location.href = '/login';
-      } else {
+        return;
+      }
+
+      if (session) {
         setIsAuthenticated(true);
         setAuthChecked(true);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      } else if (event === 'INITIAL_SESSION') {
+        // SDK terminou de verificar — sem sessão = não autenticado
         window.location.href = '/login';
       }
     });

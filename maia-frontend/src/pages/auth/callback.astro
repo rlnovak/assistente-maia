@@ -11,13 +11,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   <script>
     import { supabase } from '../../lib/supabase';
 
-    const { error } = await supabase.auth.exchangeCodeForSession(window.location.search);
+    (async () => {
+      // O Supabase manda ?code=xxx (PKCE flow)
+      // exchangeCodeForSession precisa da URL completa
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
 
-    if (error) {
-      console.error('Auth callback error:', error.message);
-      window.location.href = '/login?error=auth';
-    } else {
-      window.location.href = '/chat';
-    }
+      if (error) {
+        console.error('Auth callback error:', error.message);
+        window.location.href = '/login?error=auth';
+      } else {
+        window.location.href = '/chat';
+      }
+    })();
   </script>
 </BaseLayout>
