@@ -27,7 +27,7 @@ Uso:
 
 Custo estimado (~$0.02/1M tokens, text-embedding-3-small):
   Corpus ~215k tokens × N configurações = calcule antes de rodar.
-  Com 12 combinações: ~$0.05 USD total.
+  Com 12 combinações (4 × 3): ~$0.04 USD total.
 
 ATENÇÃO: não modifica o índice de produção (.chroma/).
 Cada configuração usa um ChromaDB efêmero em /tmp/maia_benchmark_<hash>/.
@@ -54,7 +54,7 @@ import structlog
 # Parâmetros a testar
 # ---------------------------------------------------------------------------
 
-WORD_SIZES = [500, 750, 1000, 1250, 1500]    # MAX_WORDS_PER_CHUNK
+WORD_SIZES = [500, 750, 1000, 1250]          # MAX_WORDS_PER_CHUNK
 OVERLAP_RATIOS = [0.0, 0.10, 0.20]           # OVERLAP_RATIO
 TOP_K_VALUES = [1, 3, 5, 10]                 # para Hit@k e NDCG@k
 
