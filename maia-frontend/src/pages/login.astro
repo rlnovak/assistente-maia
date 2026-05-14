@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LoginForm from '../components/LoginForm.tsx';
+---
+<BaseLayout title="MaIA — Entrar">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <!-- Logo -->
+      <div class="text-center mb-10">
+        <p class="text-xs font-semibold tracking-widest uppercase text-maia-dourado mb-3">
+          Assistente Parental com IA
+        </p>
+        <h1 class="font-serif text-6xl font-light text-maia-escuro tracking-wide">
+          Ma<em class="italic text-maia-dourado">IA</em>
+        </h1>
+        <p class="font-serif italic text-maia-cinza mt-2 text-lg">
+          Sua companheira na maternidade
+        </p>
+      </div>
+
+      <!-- Card de login -->
+      <div class="bg-white rounded-lg shadow-sm border border-maia-offwhite2 p-8">
+        <LoginForm client:load />
+      </div>
+
+      <p class="text-center text-xs text-maia-cinza-medio mt-6">
+        Acesso por magic link — sem senha para lembrar.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

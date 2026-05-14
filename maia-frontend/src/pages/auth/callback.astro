@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="MaIA — Autenticando...">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="text-center">
+      <p class="font-serif italic text-maia-cinza text-xl">Autenticando...</p>
+    </div>
+  </div>
+
+  <script>
+    import { supabase } from '../../lib/supabase';
+
+    const { error } = await supabase.auth.exchangeCodeForSession(window.location.search);
+
+    if (error) {
+      console.error('Auth callback error:', error.message);
+      window.location.href = '/login?error=auth';
+    } else {
+      window.location.href = '/chat';
+    }
+  </script>
+</BaseLayout>

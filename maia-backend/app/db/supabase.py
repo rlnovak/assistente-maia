@@ -1,0 +1,11 @@
+from functools import lru_cache
+
+from supabase import Client, create_client
+
+from app.core.config import settings
+
+
+@lru_cache
+def get_supabase_client() -> Client:
+    """Cliente Supabase com service_role key — uso exclusivo do backend."""
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)

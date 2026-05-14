@@ -1,0 +1,38 @@
+# Secrets
+.env
+*.env.local
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# Vector DB local (grande, regenerável via ingest)
+.chroma/
+
+# Data gerada pelo backend
+data/
+
+# Node
+node_modules/
+.astro/
+
+# Graphify (gerado)
+graphify-out/
+
+# Build frontend
+maia-frontend/dist/
+
+# Claude Code internal
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

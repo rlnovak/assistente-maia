@@ -1,0 +1,15 @@
+{"id": "q01", "bloco": "I", "query": "Estou me sentindo muito esgotada e culpada por não conseguir ser a mãe que quero ser. O que posso fazer?", "expected_files": ["01-saude-mental-materna.md"]}
+{"id": "q02", "bloco": "I", "query": "Como lidar com a solidão de ser mãe sem rede de apoio? Me sinto sozinha mesmo rodeada de gente.", "expected_files": ["02-pais-millennials-solidao.md", "01-saude-mental-materna.md"]}
+{"id": "q03", "bloco": "II", "query": "Meu filho faz birra e eu perco o controle, grito e depois me sinto péssima. Como manter a calma?", "expected_files": ["03-regulacao-emocional-pais.md"]}
+{"id": "q04", "bloco": "II", "query": "Por que meu filho de 3 anos chora tanto e não consegue se acalmar? Como ajudar ele a lidar com as emoções?", "expected_files": ["04-regulacao-emocional-criancas.md"]}
+{"id": "q05", "bloco": "II", "query": "Qual a diferença entre punição e disciplina? Preciso colocar limites mas sem machucar meu filho.", "expected_files": ["05-disciplina-positiva.md"]}
+{"id": "q06", "bloco": "II", "query": "Minha filha de 4 anos não consegue esperar nada, qualquer frustração vira choro. O que fazer?", "expected_files": ["19-frustracao.md", "04-regulacao-emocional-criancas.md"]}
+{"id": "q07", "bloco": "III", "query": "Meu filho de 2 anos diz não para tudo e não obedece nenhuma instrução. É fase ou problema?", "expected_files": ["06-desobediencia.md"]}
+{"id": "q08", "bloco": "III", "query": "Meu filho fica me chamando o tempo todo, mãe olha, mãe olha. É busca por atenção ou manipulação?", "expected_files": ["07-busca-atencao.md"]}
+{"id": "q09", "bloco": "III", "query": "Meu filho mais velho ficou com muito ciúme depois que o bebê nasceu. Como lidar com isso?", "expected_files": ["08-ciumes-irmaos.md"]}
+{"id": "q10", "bloco": "III", "query": "Meus filhos brigam o tempo todo e eu vivo no meio dos dois. Como mediar sem enlouquecer?", "expected_files": ["09-conflitos-irmaos.md"]}
+{"id": "q11", "bloco": "IV", "query": "Como criar uma rotina diária que funcione de verdade sem ficar escravo do horário?", "expected_files": ["10-rotinas-diarias.md"]}
+{"id": "q12", "bloco": "IV", "query": "Meu filho de 3 anos não dorme, acorda de madrugada e eu estou destruída. Devo fazer sleep training?", "expected_files": ["11-rotinas-sono.md"]}
+{"id": "q13", "bloco": "IV", "query": "Como ensinar meu filho a ajudar em casa sem precisar ficar pedindo ou usando tabela de recompensas?", "expected_files": ["13-colaboracao-responsabilidade.md", "17-hunt-gather-parent.md"]}
+{"id": "q14", "bloco": "V", "query": "Quanto tempo de tela é seguro para criança de 2 anos? Fico me sentindo culpada quando deixo assistir.", "expected_files": ["18-imitacao-telas.md", "14-metodos-brincar.md"]}
+{"id": "q15", "bloco": "VI", "query": "Li sobre o livro Hunt Gather Parent. Quais são os principais aprendizados das comunidades tradicionais para a criação dos filhos?", "expected_files": ["17-hunt-gather-parent.md"]}

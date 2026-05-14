@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta MaIA — Branding Book v1.0 */
+  --color-maia-offwhite:      #FAF8F5;
+  --color-maia-offwhite2:     #F4F0EB;
+  --color-maia-escuro:        #1A1410;
+  --color-maia-escuro2:       #2A2018;
+  --color-maia-cinza:         #4A4440;
+  --color-maia-cinza-medio:   #8A8480;
+  --color-maia-cinza-claro:   #C8C4C0;
+  --color-maia-dourado:       #C9A84C;
+  --color-maia-dourado-light: #E8D090;
+  --color-maia-dourado-dark:  #A07830;
+  --color-maia-verde:         #A8C5A0;
+  --color-maia-verde-light:   #D4E8D0;
+  --color-maia-azul:          #A3BFD9;
+  --color-maia-azul-light:    #D0E4F2;
+  --color-maia-amarelo:       #F0DFA0;
+  --color-maia-laranja:       #F2C4A0;
+
+  /* Tipografia */
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans:  'Inter', system-ui, sans-serif;
+
+  /* Sombras */
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md:   0 8px 32px rgba(0,0,0,0.10);
+  --shadow-gold: 0 4px 24px rgba(201,168,76,0.20);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--color-maia-offwhite);
+    color: var(--color-maia-escuro);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
