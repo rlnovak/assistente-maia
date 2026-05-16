@@ -5,6 +5,15 @@ import type { Conversation, Message } from '../lib/api';
 import ConversationSidebar from './ConversationSidebar';
 import MessageBubble from './MessageBubble';
 
+function useAutoResize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [value, ref]);
+}
+
 export default function ChatApp() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,6 +30,8 @@ export default function ChatApp() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useAutoResize(inputRef, input);
 
   // ── auth check ────────────────────────────────────────────
 
@@ -164,15 +175,29 @@ export default function ChatApp() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-maia-offwhite">
-      {/* Sidebar — oculta em mobile quando fechada */}
-      <div className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex flex-shrink-0`}>
+      {/* Backdrop mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar — overlay em mobile, estática em desktop */}
+      <div className={`
+        fixed inset-y-0 left-0 z-30 flex md:relative md:translate-x-0 transition-transform duration-200
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:flex
+      `}>
         <ConversationSidebar
           conversations={conversations}
           activeId={activeConvId}
           loading={loadingConvs}
-          onSelect={handleSelectConversation}
-          onNew={handleNewConversation}
+          onSelect={(id) => { handleSelectConversation(id); setSidebarOpen(false); }}
+          onNew={() => { handleNewConversation(); setSidebarOpen(false); }}
           onSignOut={handleSignOut}
+          onClose={() => setSidebarOpen(false)}
         />
       </div>
 
@@ -247,7 +272,7 @@ export default function ChatApp() {
 
         {/* Input */}
         <footer className="border-t border-maia-offwhite2 bg-white px-4 py-3">
-          <div className="max-w-3xl mx-auto flex items-end gap-3">
+          <div className="flex items-end gap-3">
             <label htmlFor="chat-input" className="sr-only">
               Mensagem para a MaIA
             </label>
@@ -257,9 +282,9 @@ export default function ChatApp() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Digite sua mensagem… (Enter para enviar, Shift+Enter para nova linha)"
+              placeholder="Digite sua mensagem…"
               rows={1}
-              className="flex-1 resize-none rounded-md border border-maia-cinza-claro bg-maia-offwhite px-4 py-3 text-sm text-maia-escuro placeholder-maia-cinza-medio focus:outline-none focus:ring-2 focus:ring-maia-dourado focus:border-transparent transition max-h-40 overflow-y-auto"
+              className="flex-1 resize-none rounded-md border border-maia-cinza-claro bg-maia-offwhite px-4 py-3 text-sm text-maia-escuro placeholder-maia-cinza-medio focus:outline-none focus:ring-2 focus:ring-maia-dourado focus:border-transparent transition overflow-y-auto"
               style={{ lineHeight: '1.5' }}
             />
             <button

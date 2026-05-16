@@ -7,6 +7,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onSignOut: () => void;
+  onClose?: () => void;
 }
 
 export default function ConversationSidebar({
@@ -16,6 +17,7 @@ export default function ConversationSidebar({
   onSelect,
   onNew,
   onSignOut,
+  onClose,
 }: Props) {
   return (
     <aside className="flex flex-col w-64 bg-maia-escuro text-maia-offwhite h-full" aria-label="Conversas">
@@ -24,15 +26,28 @@ export default function ConversationSidebar({
         <span className="font-serif text-xl font-light tracking-wide">
           Ma<em className="italic text-maia-dourado">IA</em>
         </span>
-        <button
-          onClick={onNew}
-          className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
-          aria-label="Nova conversa"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onNew}
+            className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+            aria-label="Nova conversa"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="md:hidden w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+              aria-label="Fechar menu"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Lista de conversas */}
