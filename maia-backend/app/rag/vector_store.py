@@ -134,29 +134,30 @@ class LocalVectorStore(VectorStore):
 
 
 # ---------------------------------------------------------------------------
-# PineconeVectorStore — stub (sprint de promoção a produção)
+# PineconeVectorStore — implementação real
 # ---------------------------------------------------------------------------
 
 class PineconeVectorStore(VectorStore):
     """
-    Stub para Pinecone. Todos os métodos levantam NotImplementedError.
-    __init__ valida envs para falhar cedo se mal configurado.
+    Pinecone serverless. Índice deve ser criado manualmente no dashboard
+    com dimensão 1536 (text-embedding-3-small) e métrica cosine.
     """
+
+    # Pinecone aceita no máximo 100 vetores por upsert
+    _UPSERT_BATCH = 100
 
     def __init__(self) -> None:
         try:
-            import pinecone  # noqa: F401
+            from pinecone import Pinecone
         except ImportError:
             raise ImportError(
-                "pinecone não instalado. Execute: pip install pinecone-client\n"
-                "Nota: PineconeVectorStore será implementado na sprint de promoção a produção."
+                "pinecone não instalado. Execute: pip install pinecone-client"
             )
 
         missing = [
             k for k, v in {
                 "PINECONE_API_KEY": settings.PINECONE_API_KEY,
                 "PINECONE_INDEX": settings.PINECONE_INDEX,
-                "PINECONE_ENVIRONMENT": settings.PINECONE_ENVIRONMENT,
             }.items() if not v
         ]
         if missing:
@@ -164,11 +165,23 @@ class PineconeVectorStore(VectorStore):
                 f"PineconeVectorStore exige variáveis de ambiente: {', '.join(missing)}"
             )
 
+        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+        self._index = pc.Index(settings.PINECONE_INDEX)
+
     def upsert(self, items: list[VectorItem]) -> None:
-        raise NotImplementedError(
-            "PineconeVectorStore será implementado na sprint de promoção a produção. "
-            "Por enquanto, use VECTOR_STORE_BACKEND=local."
-        )
+        if not items:
+            return
+        vectors = [
+            {
+                "id": item.id,
+                "values": item.vector,
+                "metadata": {**item.metadata, "_content": item.content},
+            }
+            for item in items
+        ]
+        # Envia em batches de 100
+        for i in range(0, len(vectors), self._UPSERT_BATCH):
+            self._index.upsert(vectors=vectors[i : i + self._UPSERT_BATCH])
 
     def query(
         self,
@@ -176,22 +189,47 @@ class PineconeVectorStore(VectorStore):
         top_k: int = 5,
         filter: dict | None = None,
     ) -> list[QueryResult]:
-        raise NotImplementedError(
-            "PineconeVectorStore será implementado na sprint de promoção a produção. "
-            "Por enquanto, use VECTOR_STORE_BACKEND=local."
-        )
+        kwargs: dict[str, Any] = {
+            "vector": vector,
+            "top_k": top_k,
+            "include_metadata": True,
+        }
+        if filter:
+            kwargs["filter"] = filter
+
+        response = self._index.query(**kwargs)
+
+        results: list[QueryResult] = []
+        for match in response.matches:
+            meta = dict(match.metadata or {})
+            content = meta.pop("_content", "")
+            results.append(QueryResult(
+                id=match.id,
+                content=content,
+                metadata=meta,
+                score=float(match.score),
+            ))
+        return results
 
     def delete_by_filter(self, filter: dict) -> int:
-        raise NotImplementedError(
-            "PineconeVectorStore será implementado na sprint de promoção a produção. "
-            "Por enquanto, use VECTOR_STORE_BACKEND=local."
+        # Pinecone serverless free tier não suporta delete by filter diretamente —
+        # busca IDs primeiro via query com vetor zero, depois deleta por ID.
+        # Limitado a 10k resultados por chamada.
+        zero_vector = [0.0] * 1536
+        response = self._index.query(
+            vector=zero_vector,
+            top_k=10000,
+            filter=filter,
+            include_metadata=False,
         )
+        ids = [m.id for m in response.matches]
+        if ids:
+            self._index.delete(ids=ids)
+        return len(ids)
 
     def count(self) -> int:
-        raise NotImplementedError(
-            "PineconeVectorStore será implementado na sprint de promoção a produção. "
-            "Por enquanto, use VECTOR_STORE_BACKEND=local."
-        )
+        stats = self._index.describe_index_stats()
+        return stats.total_vector_count
 
 
 # ---------------------------------------------------------------------------
