@@ -112,8 +112,9 @@ GET    /v1/stories/voices            → lista vozes disponíveis
 
 **3.5** `maia-frontend/src/components/StoryLibrary.tsx`
 - Lista de histórias geradas (card com título, data, rating)
-- Indicador visual quando áudio está expirado
-- Clique no card → expande ou navega para a história
+- Filtros por nome da criança e tema/tag
+- Indicador visual quando áudio está expirado ou ainda disponível
+- Clique no card → expande ou navega para a história completa com opção de ouvir/baixar áudio
 
 **3.6** Navegação: adicionar link "Histórias" na topbar (mobile) e sidebar (desktop) do `ChatApp.tsx`.
 
@@ -164,5 +165,5 @@ GET    /v1/stories/voices            → lista vozes disponíveis
 - [ ] Áudio gerado e reproduzível inline no mobile
 - [ ] Download de áudio funcional
 - [ ] Áudio inacessível após 7 dias
-- [ ] Biblioteca lista histórias anteriores com status do áudio
+- [ ] Biblioteca lista histórias anteriores com status do áudio e filtros por criança/tema
 - [ ] Navegação entre chat principal e aba histórias

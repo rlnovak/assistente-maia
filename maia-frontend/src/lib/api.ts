@@ -43,7 +43,7 @@ async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
-// ── tipos ────────────────────────────────────────────────────
+// ── tipos: chat ──────────────────────────────────────────────
 
 export interface Conversation {
   id: string;
@@ -66,6 +66,61 @@ export interface ChatResponse {
   message: Message;
 }
 
+// ── tipos: histórias ─────────────────────────────────────────
+
+export interface StoryGenerateRequest {
+  child_name: string;
+  characters: string[];
+  theme: string;
+  lesson: string;
+  size: 'curta' | 'media' | 'longa';
+  reference?: string;
+  child_age?: number;
+}
+
+export interface Story {
+  id: string;
+  user_id: string;
+  child_name: string;
+  characters: string[];
+  theme: string;
+  lesson: string;
+  size: string;
+  reference: string | null;
+  child_age: number | null;
+  titulo: string | null;
+  historia: string | null;
+  moral: string | null;
+  personagens: string[];
+  tags: string[];
+  model_used: string | null;
+  rating: number | null;
+  rating_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StoryAudio {
+  id: string;
+  story_id: string;
+  voice_id: string;
+  voice_name: string | null;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface AudioUrl {
+  url: string;
+  expires_at: string;
+}
+
+export interface Voice {
+  id: string;
+  name: string;
+  description: string;
+  preview_text: string;
+}
+
 // ── endpoints ────────────────────────────────────────────────
 
 export const api = {
@@ -83,4 +138,42 @@ export const api = {
 
   health: () =>
     apiFetch<{ status: string; version: string }>('/v1/health'),
+
+  stories: {
+    generate: (req: StoryGenerateRequest) =>
+      apiFetch<{ story: Story }>('/v1/stories/generate', {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }).then((r) => r.story),
+
+    list: (params?: { child_name?: string; tag?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.child_name) qs.set('child_name', params.child_name);
+      if (params?.tag) qs.set('tag', params.tag);
+      if (params?.limit != null) qs.set('limit', String(params.limit));
+      if (params?.offset != null) qs.set('offset', String(params.offset));
+      return apiFetch<Story[]>(`/v1/stories${qs.size ? `?${qs}` : ''}`);
+    },
+
+    get: (storyId: string) =>
+      apiFetch<Story>(`/v1/stories/${storyId}`),
+
+    rate: (storyId: string, rating: number, notes?: string) =>
+      apiFetch<Story>(`/v1/stories/${storyId}/rating`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, notes: notes ?? null }),
+      }),
+
+    generateAudio: (storyId: string, voiceId: string) =>
+      apiFetch<StoryAudio>(`/v1/stories/${storyId}/audio`, {
+        method: 'POST',
+        body: JSON.stringify({ voice_id: voiceId }),
+      }),
+
+    getAudioUrl: (storyId: string) =>
+      apiFetch<AudioUrl>(`/v1/stories/${storyId}/audio`),
+
+    voices: () =>
+      apiFetch<Voice[]>('/v1/stories/voices'),
+  },
 };

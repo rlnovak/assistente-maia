@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     # === Email ===
     RESEND_API_KEY: str = ""
 
+    # === Stories LLM (independente do chat) ===
+    STORIES_LLM_PROVIDER: Literal["anthropic", "openai"] = "anthropic"
+    STORIES_LLM_MODEL: str = "claude-sonnet-4-6"
+
+    # === ElevenLabs (áudio) ===
+    ELEVENLABS_API_KEY: str = ""
+
+    # === Storage ===
+    SUPABASE_STORAGE_BUCKET_AUDIOS: str = "story-audios"
+    AUDIO_EXPIRY_DAYS: int = 7
+
     @model_validator(mode="after")
     def validate_llm_config(self) -> "Settings":
         if self.LLM_PROVIDER == "anthropic":

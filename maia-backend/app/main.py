@@ -47,11 +47,13 @@ app.add_middleware(
 from app.api.v1.health import router as health_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.conversations import router as conversations_router
+from app.api.v1.stories import router as stories_router
 from app.api.v1.webhooks.hubla import router as hubla_router
 from app.api.v1.webhooks.whatsapp import router as whatsapp_router
 
 app.include_router(health_router, prefix="/v1")
 app.include_router(chat_router, prefix="/v1")
 app.include_router(conversations_router, prefix="/v1")
+app.include_router(stories_router, prefix="/v1")
 app.include_router(hubla_router, prefix="/v1")
 app.include_router(whatsapp_router, prefix="/v1")
