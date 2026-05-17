@@ -1,11 +1,8 @@
-"""
-Serviço de geração de áudio via ElevenLabs.
-
-STUB — estrutura completa mas sem chamada real à API ElevenLabs.
-Ativar quando ELEVENLABS_API_KEY estiver configurada.
-"""
+"""Serviço de geração de áudio via ElevenLabs."""
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
+
+import httpx
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -46,14 +43,10 @@ def _get_voice(voice_id: str) -> Voice | None:
 
 
 def generate_audio(user_id: UUID, story_id: UUID, voice_id: str) -> StoryAudioOut:
-    """
-    Gera áudio da história via ElevenLabs e salva no Supabase Storage.
-    Atualmente retorna erro informativo até ELEVENLABS_API_KEY ser configurada.
-    """
+    """Gera áudio da história via ElevenLabs e salva no Supabase Storage."""
     if not settings.ELEVENLABS_API_KEY:
         raise NotImplementedError(
-            "ELEVENLABS_API_KEY não configurada. "
-            "Adicione a chave ao .env para habilitar geração de áudio."
+            "ELEVENLABS_API_KEY não configurada. Adicione a chave ao .env."
         )
 
     voice = _get_voice(voice_id)
@@ -62,7 +55,6 @@ def generate_audio(user_id: UUID, story_id: UUID, voice_id: str) -> StoryAudioOu
 
     db = get_supabase_client()
 
-    # Verifica ownership da história
     story_result = (
         db.table("stories")
         .select("id, historia")
@@ -76,31 +68,27 @@ def generate_audio(user_id: UUID, story_id: UUID, voice_id: str) -> StoryAudioOu
 
     historia_text = story_result.data["historia"]
 
-    # ── ELEVENLABS CALL (implementar quando key estiver disponível) ────────────
-    # import httpx
-    # response = httpx.post(
-    #     f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-    #     headers={"xi-api-key": settings.ELEVENLABS_API_KEY},
-    #     json={
-    #         "text": historia_text,
-    #         "model_id": "eleven_multilingual_v2",
-    #         "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
-    #     },
-    # )
-    # audio_bytes = response.content
-    # ──────────────────────────────────────────────────────────────────────────
+    response = httpx.post(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+        headers={"xi-api-key": settings.ELEVENLABS_API_KEY},
+        json={
+            "text": historia_text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+        },
+        timeout=60.0,
+    )
+    response.raise_for_status()
+    audio_bytes = response.content
 
-    # ── STORAGE UPLOAD (implementar junto com ElevenLabs) ─────────────────────
-    # storage_path = f"{user_id}/{story_id}.mp3"
-    # db.storage.from_(settings.SUPABASE_STORAGE_BUCKET_AUDIOS).upload(
-    #     path=storage_path,
-    #     file=audio_bytes,
-    #     file_options={"content-type": "audio/mpeg"},
-    # )
-    # ──────────────────────────────────────────────────────────────────────────
+    storage_path = f"{user_id}/{story_id}.mp3"
+    db.storage.from_(settings.SUPABASE_STORAGE_BUCKET_AUDIOS).upload(
+        path=storage_path,
+        file=audio_bytes,
+        file_options={"content-type": "audio/mpeg"},
+    )
 
     expires_at = datetime.now(timezone.utc) + timedelta(days=settings.AUDIO_EXPIRY_DAYS)
-    storage_path = f"{user_id}/{story_id}.mp3"  # placeholder
 
     result = (
         db.table("story_audios")
@@ -115,15 +103,12 @@ def generate_audio(user_id: UUID, story_id: UUID, voice_id: str) -> StoryAudioOu
         .execute()
     )
 
-    log.info("story_audio_stub_saved", story_id=str(story_id), voice_id=voice_id)
+    log.info("story_audio_generated", story_id=str(story_id), voice_id=voice_id)
     return StoryAudioOut(**result.data[0])
 
 
 def get_audio_url(user_id: UUID, story_id: UUID) -> AudioUrlResponse:
     """Retorna signed URL do Storage para o áudio da história."""
-    if not settings.ELEVENLABS_API_KEY:
-        raise NotImplementedError("ELEVENLABS_API_KEY não configurada.")
-
     db = get_supabase_client()
     result = (
         db.table("story_audios")
