@@ -1,31 +1,136 @@
-# Subagente Gerador de Histórias Infantis
+# Feature: Gerador de Histórias Infantis
 
-## Contexto
+## Visão Geral
 
-Dentro do produto de assistente para mães de crianças pequenas (1–5 anos), a vertical de **histórias customizadas** não demanda pesquisa no Perplexity — ela é uma *feature* de geração, implementada como um subagente especializado chamado pelo assistente principal.
+Aba dedicada no assistente MaIA para geração de histórias infantis personalizadas. Contexto criativo separado do chat de suporte emocional — modos cognitivos diferentes que não devem se misturar.
+
+A MaIA extrai automaticamente contexto relevante do histórico do chat principal (nome da criança, idade, preferências mencionadas) para enriquecer a história sem exigir que a mãe repita informações.
 
 ---
 
-## Inputs do subagente
+## Decisões de Arquitetura
 
-| Campo | Descrição | Obrigatório |
+### Entrada de dados
+Formulário na UI com validação client-side. Campos obrigatórios garantidos pela UI — não pelo modelo. O modelo só pede mais informações se detectar ambiguidade no tema fornecido.
+
+**Campos obrigatórios:**
+| Campo | Tipo | Notas |
 |---|---|---|
-| Nome da criança | Incorporado naturalmente na narrativa | Sim |
-| Personagens | Separados por vírgula | Sim |
-| Tema da história | O que acontece na história | Sim |
-| Lição / valor | O que a história vai ensinar | Sim |
-| Tamanho | Curta (~300), Média (~600) ou Longa (~1000 palavras) | Sim |
-| Referência criativa | História de inspiração para estilo/estrutura | Não |
+| Nome da criança | texto | pré-preenchido se mencionado no chat |
+| Personagens | texto (vírgula) | ex: "cachorrinho, fada" |
+| Tema da história | texto livre | o que acontece |
+| Lição / valor | texto livre | o que a história ensina |
+| Tamanho | seleção | Curta / Média / Longa — ou "não sei" |
 
-### Exemplo de referência criativa
+**Campo opcional:**
+| Campo | Tipo | Notas |
+|---|---|---|
+| Referência criativa | texto livre | história de inspiração para estilo/estrutura |
 
-> "Baseado na Rapunzel, mas a protagonista é uma gatinha chamada **Gatunzel** que vive numa torre feita de novelos de lã, e em vez de cabelo comprido ela tem um rabo enorme e peludo."
+### Tamanho por idade (fallback)
+Quando a mãe seleciona "não sei" ou não informa a idade, usar a tabela abaixo:
 
-Esse tipo de customização — adaptar histórias clássicas com personagens e universos que a criança já ama — é um diferencial positivo do produto.
+| Idade | Tamanho recomendado | Palavras aprox. |
+|---|---|---|
+| 1–2 anos | Curta | ~200 palavras |
+| 3 anos | Curta | ~300 palavras |
+| 4 anos | Média | ~500 palavras |
+| 5 anos | Média | ~700 palavras |
+| Sem info | Curta | ~300 palavras |
+
+### Banco de dados
+Tabelas no Supabase existente (não banco separado).
+
+**Tabela `stories`:**
+```sql
+id uuid PRIMARY KEY
+user_id uuid REFERENCES auth.users
+child_name text
+characters text[]
+theme text
+lesson text
+size text  -- 'curta' | 'media' | 'longa'
+reference text
+titulo text
+historia text
+moral text
+tags text[]
+rating smallint  -- 1–5, nullable até a mãe avaliar
+rating_notes text  -- campo livre opcional da mãe
+model_used text
+context_extracted jsonb  -- contexto extraído do chat principal
+created_at timestamptz DEFAULT now()
+```
+
+**Tabela `story_audios`:**
+```sql
+id uuid PRIMARY KEY
+story_id uuid REFERENCES stories
+user_id uuid REFERENCES auth.users
+voice_id text  -- ID da voz no ElevenLabs
+storage_path text  -- caminho no Supabase Storage
+expires_at timestamptz  -- created_at + 7 dias
+duration_seconds integer
+created_at timestamptz DEFAULT now()
+```
+
+**Política de retenção de áudio:** expiram em 7 dias. A mãe pode baixar para o device dentro desse período. Após expirar, o arquivo é removido do Storage (job periódico ou trigger).
+
+### Contexto extraído do chat principal
+Periodicamente (ou antes de cada geração), o sistema escaneia o histórico de conversas da usuária e extrai:
+- Nome(s) da(s) criança(s) mencionados
+- Idade mencionada
+- Personagens favoritos, brincadeiras, medos, conquistas
+- Qualquer informação que possa personalizar a história
+
+Armazenado em `context_extracted` (jsonb) na tabela `stories` — registro de o que foi usado em cada geração.
+
+### Notas e rating
+Rating de 1–5 estrelas + campo de texto opcional. Armazenados em `stories`. Propósito imediato: analytics de produto (quais temas/personagens geram histórias melhor avaliadas). Uso futuro: histórias bem avaliadas viram exemplos few-shot no prompt.
+
+### Áudio (v1)
+- Integração com ElevenLabs API
+- Vozes pré-definidas (femininas, suaves) — a mãe escolhe entre opções
+- Clonagem de voz da mãe: **feature futura premium**
+- Player inline na UI mobile
+- Botão de download disponível por 7 dias
+- Arquivos salvos no Supabase Storage
+
+### Modelo de geração
+A definir (Claude ou Gemini). System prompt especializado em literatura infantil, separado do system prompt da MaIA principal. Resposta em JSON estruturado.
 
 ---
 
-## System prompt do subagente
+## Fluxo Completo
+
+```
+Aba "Histórias"
+  └── Formulário (campos obrigatórios + opcionais)
+        └── Sistema extrai contexto do chat principal
+              └── POST /v1/stories/generate
+                    ├── Valida campos obrigatórios
+                    ├── Monta prompt com inputs + contexto extraído
+                    ├── Chama LLM com system prompt especializado
+                    ├── Parseia JSON de resposta
+                    └── Salva em tabela `stories`
+                          └── UI exibe história completa
+                                ├── Rating (1–5 estrelas) + nota opcional
+                                └── Botão "Ouvir"
+                                      └── POST /v1/stories/{id}/audio
+                                            ├── Chama ElevenLabs
+                                            ├── Salva em Storage (expira 7d)
+                                            └── Player inline + botão download
+
+Biblioteca de Histórias (tela separada dentro da aba)
+  └── Lista todas as histórias da usuária
+        ├── Filtros por criança, tema, rating
+        ├── Acesso à história + áudio (se ainda válido)
+        └── Indicador visual quando áudio expira
+```
+
+---
+
+## System Prompt do Gerador
 
 ```
 Você é um especialista em literatura infantil, com profundo conhecimento em
@@ -53,100 +158,36 @@ FORMATO DA RESPOSTA (JSON puro, sem markdown):
 
 ---
 
-## Função de montagem do prompt (user message)
+## Função de montagem do prompt
 
-```javascript
-function buildPrompt({ childName, characters, theme, lesson, size, reference }) {
-  const sizeMap = {
-    curta: '300 palavras',
-    média: '600 palavras',
-    longa: '1000 palavras'
-  }
-
-  const referenceBlock = reference
-    ? `\n\nINSPIRAÇÃO CRIATIVA (use como referência de estilo/estrutura, mas crie algo original):\n${reference}`
-    : ''
-
-  return `Crie uma história infantil com as seguintes características:
-
-- PROTAGONISTA: ${childName} (incorpore o nome naturalmente na história)
-- PERSONAGENS: ${characters}
-- TEMA: ${theme}
-- LIÇÃO A TRANSMITIR: ${lesson}
-- TAMANHO: aproximadamente ${sizeMap[size]}${referenceBlock}`
+```python
+SIZE_MAP = {
+    "curta": "300 palavras",
+    "media": "600 palavras",
+    "longa": "1000 palavras",
 }
+
+def build_story_prompt(child_name, characters, theme, lesson, size, reference=None, context=None):
+    reference_block = f"\n\nINSPIRAÇÃO CRIATIVA (use como referência de estilo/estrutura, mas crie algo original):\n{reference}" if reference else ""
+    context_block = f"\n\nCONTEXTO DA CRIANÇA (extraído do histórico de conversas — use para personalizar):\n{context}" if context else ""
+
+    return f"""Crie uma história infantil com as seguintes características:
+
+- PROTAGONISTA: {child_name} (incorpore o nome naturalmente na história)
+- PERSONAGENS: {characters}
+- TEMA: {theme}
+- LIÇÃO A TRANSMITIR: {lesson}
+- TAMANHO: aproximadamente {SIZE_MAP[size]}{reference_block}{context_block}"""
 ```
 
 ---
 
-## Chamada à API (backend)
+## Próximas Features (backlog)
 
-```javascript
-// POST /api/gerar-historia
-app.post('/api/gerar-historia', async (req, res) => {
-  const { childName, characters, theme, lesson, size, reference } = req.body
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1500,
-    system: SYSTEM_PROMPT_HISTORIAS, // constante com o system prompt acima
-    messages: [{
-      role: 'user',
-      content: buildPrompt({ childName, characters, theme, lesson, size, reference })
-    }]
-  })
-
-  const raw = response.content.find(b => b.type === 'text')?.text || ''
-  const clean = raw.replace(/```json|```/g, '').trim()
-  const historia = JSON.parse(clean)
-
-  res.json(historia)
-  // retorna: { titulo, historia, moral, personagens, tags }
-})
-```
-
-> **Importante:** a chave da API Anthropic nunca vai para o cliente (app mobile ou browser). Ela fica exclusivamente no backend.
-
----
-
-## Arquitetura de integração
-
-### App mobile (React Native / Flutter)
-
-```
-App mobile → seu backend (Node/Python) → API Anthropic → resposta → app
-```
-
-O app envia os campos via JSON, recebe o objeto de história e renderiza no UI nativo (SwiftUI, Jetpack Compose, React Native, etc.).
-
-### Chatbot embedado na plataforma web
-
-```
-Mãe digita no chat → orquestrador detecta intenção GERAR_HISTORIA
-                   → coleta dados faltantes (pergunta à mãe se necessário)
-                   → aciona subagente de histórias
-                   → Claude gera o JSON
-                   → história exibida no chat
-```
-
-O assistente principal age como **orquestrador**: detecta a intenção pela conversa em linguagem natural e passa os dados extraídos automaticamente para o subagente. A mãe não precisa preencher um formulário — ela só conversa.
-
----
-
-## O que extrair do protótipo HTML para a codebase
-
-O arquivo `gerador-historinhas.html` gerado durante a conversa é apenas um protótipo visual para testes. Para integrar na codebase real, os três elementos que importam são:
-
-1. **System prompt** — guarde como constante no backend. Nunca exposto ao cliente.
-2. **`buildPrompt(inputs)`** — monta a user message a partir dos campos coletados.
-3. **Parser do JSON de resposta** — o Claude retorna `{ titulo, historia, moral, personagens, tags }` para renderizar no UI.
-
----
-
-## Próximos passos sugeridos
-
+- [ ] Clonagem de voz da mãe via ElevenLabs (premium)
 - [ ] Botão "Regenerar" — nova versão com os mesmos inputs
-- [ ] Exportar história como PDF para imprimir
+- [ ] Exportar história como PDF ilustrado
 - [ ] Campo "idade exata" para calibrar vocabulário com mais precisão
-- [ ] Modo "continuar a história" — a mãe pede um novo capítulo
-- [ ] Gerar código do backend (Node ou Python) estruturado para a codebase
+- [ ] Modo "continuar a história" — novo capítulo
+- [ ] Few-shot com histórias bem avaliadas (rating 4–5) no prompt
+- [ ] Notificação push quando áudio está prestes a expirar
