@@ -131,10 +131,10 @@ def test_chat_happy_path(client: TestClient):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["content"] == "Olá! Como posso ajudar?"
-    assert data["model_used"] == "gpt-5.4"
-    assert data["tokens_in"] == 50
-    assert data["tokens_out"] == 20
+    assert data["message"]["content"] == "Olá! Como posso ajudar?"
+    assert data["message"]["role"] == "assistant"
+    assert data["message"]["model_used"] == "gpt-5.4"
+    assert "conversation_id" in data
 
 
 def test_system_prompt_anthropic():

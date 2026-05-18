@@ -4,7 +4,7 @@ import structlog
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.models import ChatResponse
+from app.db.models import ChatResponse, MessageOut
 from app.llm.llm_client import LLMMessage, get_llm_client
 from app.llm.prompts import get_system_prompt
 from app.rag.embeddings import embed_single
@@ -90,9 +90,12 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
 
     return ChatResponse(
         conversation_id=conversation.id,
-        message_id=assistant_msg.id,
-        content=result.text,
-        model_used=result.model_used,
-        tokens_in=result.input_tokens,
-        tokens_out=result.output_tokens,
+        message=MessageOut(
+            id=assistant_msg.id,
+            conversation_id=conversation.id,
+            role="assistant",
+            content=result.text,
+            model_used=result.model_used,
+            created_at=assistant_msg.created_at,
+        ),
     )

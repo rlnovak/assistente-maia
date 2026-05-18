@@ -40,13 +40,18 @@ class ChatRequest(BaseModel):
     conversation_id: UUID | None = None
 
 
+class MessageOut(BaseModel):
+    id: UUID
+    conversation_id: UUID
+    role: str
+    content: str
+    model_used: str | None = None
+    created_at: datetime
+
+
 class ChatResponse(BaseModel):
     conversation_id: UUID
-    message_id: UUID
-    content: str
-    model_used: str
-    tokens_in: int
-    tokens_out: int
+    message: MessageOut
 
 
 class ConversationListItem(BaseModel):
@@ -54,14 +59,6 @@ class ConversationListItem(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
-
-
-class MessageOut(BaseModel):
-    id: UUID
-    role: str
-    content: str
-    model_used: str | None = None
-    created_at: datetime
 
 
 # ── Stories ────────────────────────────────────────────────────────────────────

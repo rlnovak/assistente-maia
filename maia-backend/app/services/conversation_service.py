@@ -60,7 +60,7 @@ def list_messages(user_id: UUID, conversation_id: UUID) -> list[MessageOut]:
 
     result = (
         client.table("messages")
-        .select("id,role,content,model_used,created_at")
+        .select("id,conversation_id,role,content,model_used,created_at")
         .eq("conversation_id", str(conversation_id))
         .order("created_at")
         .execute()
