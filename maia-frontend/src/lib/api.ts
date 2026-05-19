@@ -40,6 +40,10 @@ async function apiFetch<T>(
     throw new Error(`Erro ${response.status}: ${body}`);
   }
 
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return undefined as unknown as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -50,6 +54,24 @@ export interface Conversation {
   title: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface FamilyProfile {
+  id: string;
+  user_id: string;
+  mother_name: string | null;
+  child_name: string | null;
+  child_age: number | null;
+  child_birth_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FamilyProfileUpdate {
+  mother_name?: string | null;
+  child_name?: string | null;
+  child_age?: number | null;
+  child_birth_date?: string | null;
 }
 
 export interface Message {
@@ -135,6 +157,27 @@ export const api = {
 
   messages: (conversationId: string) =>
     apiFetch<Message[]>(`/v1/conversations/${conversationId}/messages`),
+
+  renameConversation: (id: string, title: string) =>
+    apiFetch<void>(`/v1/conversations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    }),
+
+  deleteConversation: (id: string) =>
+    apiFetch<void>(`/v1/conversations/${id}`, { method: 'DELETE' }),
+
+  exportConversation: (id: string) =>
+    apiFetch<{ markdown: string }>(`/v1/conversations/${id}/export`).then((r) => r.markdown),
+
+  profile: {
+    get: () => apiFetch<FamilyProfile>('/v1/profile'),
+    update: (data: FamilyProfileUpdate) =>
+      apiFetch<FamilyProfile>('/v1/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
 
   health: () =>
     apiFetch<{ status: string; version: string }>('/v1/health'),

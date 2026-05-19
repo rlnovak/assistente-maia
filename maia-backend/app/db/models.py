@@ -20,6 +20,7 @@ class Conversation(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
+    deleted_at: datetime | None = None
 
 
 class Message(BaseModel):
@@ -59,6 +60,27 @@ class ConversationListItem(BaseModel):
     title: str
     created_at: datetime
     updated_at: datetime
+
+
+# ── Family Profile ─────────────────────────────────────────────────────────────
+
+class FamilyProfile(BaseModel):
+    id: UUID
+    user_id: UUID
+    mother_name: str | None = None
+    child_name: str | None = None
+    child_age: int | None = None
+    child_birth_date: str | None = None
+    raw_context: dict = {}
+    created_at: datetime
+    updated_at: datetime
+
+
+class FamilyProfileUpdate(BaseModel):
+    mother_name: str | None = None
+    child_name: str | None = None
+    child_age: int | None = None
+    child_birth_date: str | None = None
 
 
 # ── Stories ────────────────────────────────────────────────────────────────────

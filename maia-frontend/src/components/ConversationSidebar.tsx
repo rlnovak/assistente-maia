@@ -1,4 +1,11 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Conversation } from '../lib/api';
+
+interface ContextMenuState {
+  convId: string;
+  x: number;
+  y: number;
+}
 
 interface Props {
   conversations: Conversation[];
@@ -8,6 +15,9 @@ interface Props {
   onNew: () => void;
   onSignOut: () => void;
   onClose?: () => void;
+  onRename: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+  onExport: (id: string) => void;
 }
 
 export default function ConversationSidebar({
@@ -18,7 +28,83 @@ export default function ConversationSidebar({
   onNew,
   onSignOut,
   onClose,
+  onRename,
+  onDelete,
+  onExport,
 }: Props) {
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // close context menu on outside click
+  useEffect(() => {
+    if (!contextMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [contextMenu]);
+
+  // focus rename input
+  useEffect(() => {
+    if (renamingId) renameInputRef.current?.focus();
+  }, [renamingId]);
+
+  // auto-hide toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function handleContextMenu(e: React.MouseEvent, conv: Conversation) {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ convId: conv.id, x: e.clientX, y: e.clientY });
+    setRenamingId(null);
+    setDeleteConfirmId(null);
+  }
+
+  function startRename(conv: Conversation) {
+    setContextMenu(null);
+    setRenameValue(conv.title ?? '');
+    setRenamingId(conv.id);
+  }
+
+  function commitRename(id: string) {
+    const trimmed = renameValue.trim();
+    if (trimmed) onRename(id, trimmed);
+    setRenamingId(null);
+  }
+
+  function handleRenameKeyDown(e: React.KeyboardEvent, id: string) {
+    if (e.key === 'Enter') commitRename(id);
+    if (e.key === 'Escape') setRenamingId(null);
+  }
+
+  async function handleExport(id: string) {
+    setContextMenu(null);
+    await onExport(id);
+    setToast('Copiado!');
+  }
+
+  function requestDelete(id: string) {
+    setContextMenu(null);
+    setDeleteConfirmId(id);
+  }
+
+  function confirmDelete(id: string) {
+    setDeleteConfirmId(null);
+    onDelete(id);
+  }
+
   return (
     <aside className="flex flex-col w-64 bg-maia-escuro text-maia-offwhite h-full" aria-label="Conversas">
       {/* Header */}
@@ -59,18 +145,54 @@ export default function ConversationSidebar({
           <p className="px-4 py-3 text-xs text-white/40 italic">Nenhuma conversa ainda.</p>
         )}
         {conversations.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onSelect(c.id)}
-            className={`w-full text-left px-4 py-3 text-sm truncate transition ${
-              c.id === activeId
-                ? 'bg-white/15 text-white'
-                : 'text-white/60 hover:bg-white/10 hover:text-white'
-            }`}
-            aria-current={c.id === activeId ? 'page' : undefined}
-          >
-            {c.title ?? 'Conversa'}
-          </button>
+          <div key={c.id} className="relative group">
+            {renamingId === c.id ? (
+              <div className="px-3 py-2">
+                <input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => commitRename(c.id)}
+                  onKeyDown={(e) => handleRenameKeyDown(e, c.id)}
+                  className="w-full bg-white/10 text-white text-sm rounded px-2 py-1 outline-none focus:ring-1 focus:ring-maia-dourado"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => onSelect(c.id)}
+                onContextMenu={(e) => handleContextMenu(e, c)}
+                className={`w-full text-left px-4 py-3 text-sm truncate transition ${
+                  c.id === activeId
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
+                aria-current={c.id === activeId ? 'page' : undefined}
+              >
+                {c.title ?? 'Conversa'}
+              </button>
+            )}
+
+            {/* Delete confirm inline */}
+            {deleteConfirmId === c.id && (
+              <div className="mx-3 mb-2 bg-white/5 rounded p-2 text-xs text-white/80">
+                <p className="mb-2">Apagar esta conversa?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => confirmDelete(c.id)}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-2 py-1 transition"
+                  >
+                    Apagar
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white rounded px-2 py-1 transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 
@@ -93,6 +215,52 @@ export default function ConversationSidebar({
           Sair
         </button>
       </div>
+
+      {/* Context menu — fixed, outside sidebar flow */}
+      {contextMenu && (
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }}
+          className="bg-maia-escuro border border-white/20 rounded-md shadow-xl py-1 min-w-[160px]"
+        >
+          {(() => {
+            const conv = conversations.find((c) => c.id === contextMenu.convId);
+            if (!conv) return null;
+            return (
+              <>
+                <button
+                  onClick={() => startRename(conv)}
+                  className="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+                >
+                  Renomear
+                </button>
+                <button
+                  onClick={() => handleExport(conv.id)}
+                  className="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+                >
+                  Copiar transcrição
+                </button>
+                <button
+                  onClick={() => requestDelete(conv.id)}
+                  className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/10 transition"
+                >
+                  Apagar
+                </button>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}
+          className="bg-maia-escuro border border-white/20 rounded-full px-4 py-2 text-sm text-white shadow-lg"
+        >
+          {toast}
+        </div>
+      )}
     </aside>
   );
 }

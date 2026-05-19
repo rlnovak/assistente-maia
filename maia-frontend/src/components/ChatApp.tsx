@@ -163,6 +163,40 @@ export default function ChatApp() {
     await supabase.auth.signOut();
   }
 
+  async function handleRename(id: string, title: string) {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title } : c))
+    );
+    try {
+      await api.renameConversation(id, title);
+    } catch {
+      // revert on failure
+      await loadConversations();
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (id === activeConvId) {
+      setActiveConvId(null);
+      setMessages([]);
+    }
+    try {
+      await api.deleteConversation(id);
+    } catch {
+      await loadConversations();
+    }
+  }
+
+  async function handleExport(id: string) {
+    try {
+      const markdown = await api.exportConversation(id);
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      // toast shown by sidebar regardless; silently fail clipboard
+    }
+  }
+
   // ── render ────────────────────────────────────────────────
 
   if (!authChecked) {
@@ -198,6 +232,9 @@ export default function ChatApp() {
           onNew={() => { handleNewConversation(); setSidebarOpen(false); }}
           onSignOut={handleSignOut}
           onClose={() => setSidebarOpen(false)}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onExport={handleExport}
         />
       </div>
 

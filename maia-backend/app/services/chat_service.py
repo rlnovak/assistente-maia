@@ -10,10 +10,13 @@ from app.llm.prompts import get_system_prompt
 from app.rag.embeddings import embed_single
 from app.rag.vector_store import get_vector_store
 from app.services.conversation_service import (
+    generate_title,
     get_or_create_conversation,
     get_recent_messages,
     save_message,
+    update_conversation_title,
 )
+from app.services.profile_service import extract_and_update_profile, get_or_create_profile
 
 log = get_logger(__name__)
 
@@ -47,21 +50,22 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
 
     # 3. Histórico recente
     history = get_recent_messages(conversation.id, limit=_HISTORY_LIMIT)
-    # Exclui a mensagem que acabamos de inserir (última da lista) para não duplicar
     history_messages = [
         LLMMessage(role=m.role, content=m.content)
-        for m in history[:-1]  # sem a última (user atual)
+        for m in history[:-1]
     ]
     history_messages.append(LLMMessage(role="user", content=message))
 
-    # 4. RAG context
+    # 4. Perfil da família
+    profile = get_or_create_profile(user_id)
+
+    # 5. RAG context
     rag_context = _build_rag_context(message)
-    system = get_system_prompt()
+    system = get_system_prompt(profile=profile)
     if rag_context:
-        # Injeta contexto RAG no final do system prompt
         system = f"{system}\n\n{rag_context}"
 
-    # 5. Chama LLM via factory — sem import direto de anthropic/openai
+    # 6. Chama LLM via factory
     llm = get_llm_client()
     result = llm.complete(
         messages=history_messages,
@@ -78,7 +82,7 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
         stop_reason=result.stop_reason,
     )
 
-    # 6. Persiste resposta do assistente
+    # 7. Persiste resposta do assistente
     assistant_msg = save_message(
         conversation.id,
         role="assistant",
@@ -87,6 +91,20 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
         tokens_in=result.input_tokens,
         tokens_out=result.output_tokens,
     )
+
+    # 8. Extrai perfil da mensagem do usuário (não bloqueia)
+    try:
+        extract_and_update_profile(user_id, message)
+    except Exception:
+        log.warning("profile_extract_error", exc_info=True)
+
+    # 9. Gera título automático na primeira mensagem
+    if conversation.title == "Nova conversa":
+        try:
+            title = generate_title(message)
+            update_conversation_title(conversation.id, title)
+        except Exception:
+            log.warning("title_generation_error", exc_info=True)
 
     return ChatResponse(
         conversation_id=conversation.id,

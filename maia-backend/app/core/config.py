@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     STORIES_LLM_PROVIDER: Literal["anthropic", "openai"] = "anthropic"
     STORIES_LLM_MODEL: str = "claude-sonnet-4-6"
 
+    # === Title generation (barato, independente do LLM_MODEL) ===
+    TITLE_LLM_MODEL: str = "gpt-4o-mini"
+
     # === ElevenLabs (áudio) ===
     ELEVENLABS_API_KEY: str = ""
 
