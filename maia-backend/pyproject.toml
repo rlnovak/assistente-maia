@@ -18,6 +18,7 @@ dependencies = [
     "openai>=1.50.0",
     # Vector DB
     "chromadb>=0.5.0",
+    "pinecone>=5.0.0",
     # Embeddings / retry
     "tenacity>=8.3.0",
     # Document loaders
