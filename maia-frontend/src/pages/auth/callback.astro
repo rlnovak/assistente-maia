@@ -12,16 +12,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     import { supabase } from '../../lib/supabase';
 
     (async () => {
-      // O Supabase manda ?code=xxx (PKCE flow)
-      // exchangeCodeForSession precisa da URL completa
       const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
 
       if (error) {
         console.error('Auth callback error:', error.message);
         window.location.href = '/login?error=auth';
-      } else {
-        window.location.href = '/chat';
+        return;
       }
+
+      // Aguarda SDK persistir sessão no localStorage antes de navegar
+      await new Promise<void>((resolve) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (session) {
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+      });
+
+      window.location.href = '/chat';
     })();
   </script>
 </BaseLayout>
