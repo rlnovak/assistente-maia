@@ -12,22 +12,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     import { supabase } from '../../lib/supabase';
 
     (async () => {
-      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-
-      if (error) {
-        console.error('Auth callback error:', error.message);
-        window.location.href = '/login?error=auth';
-        return;
-      }
-
-      // Aguarda SDK persistir sessão no localStorage antes de navegar
-      await new Promise<void>((resolve) => {
+      // Implicit flow: token vem no hash fragment — SDK detecta automaticamente via detectSessionInUrl
+      // Aguarda onAuthStateChange confirmar sessão antes de navegar
+      await new Promise<void>((resolve, reject) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
           if (session) {
             subscription.unsubscribe();
             resolve();
+          } else if (event === 'INITIAL_SESSION') {
+            subscription.unsubscribe();
+            reject(new Error('No session after callback'));
           }
         });
+      }).catch((err) => {
+        console.error('Auth callback error:', err.message);
+        window.location.href = '/login?error=auth';
+        return;
       });
 
       window.location.href = '/chat';
