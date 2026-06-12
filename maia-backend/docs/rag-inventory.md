@@ -1,7 +1,7 @@
 # RAG Inventory
 
-Gerado em: 2026-05-12T15:45:26.037082+00:00
-Fonte: `/data/knowledge`
+Gerado em: 2026-05-20T03:17:22.221965+00:00
+Fonte: `c:\Users\rlnov\Projetos\assistente-maia\knowledge`
 Total de arquivos: 20
 
 | Arquivo | Tamanho (KB) |
