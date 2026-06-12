@@ -24,19 +24,37 @@ _RAG_TOP_K = 5
 _HISTORY_LIMIT = 10
 
 
-def _build_rag_context(query: str) -> str:
-    """Recupera chunks relevantes e formata como bloco de contexto."""
+def _build_rag_context(query: str) -> tuple[str, dict]:
+    """Recupera chunks relevantes e formata como bloco de contexto.
+
+    Retorna (bloco_contexto, telemetria). O bloco de contexto é idêntico ao
+    comportamento anterior — a telemetria é puramente observacional e não
+    influencia o prompt nem a resposta gerada.
+    """
+    telemetry: dict = {
+        "rag_used": False,
+        "rag_chunks": 0,
+        "rag_top_score": None,
+        "rag_status": "ok",
+    }
     try:
         vector = embed_single(query)
         store = get_vector_store()
         results = store.query(vector, top_k=_RAG_TOP_K)
         if not results:
-            return ""
+            telemetry["rag_status"] = "empty"
+            return "", telemetry
         chunks = "\n\n---\n\n".join(r.content for r in results)
-        return f"<contexto_rag>\n{chunks}\n</contexto_rag>"
+        telemetry.update(
+            rag_used=True,
+            rag_chunks=len(results),
+            rag_top_score=round(max(r.score for r in results), 4),
+        )
+        return f"<contexto_rag>\n{chunks}\n</contexto_rag>", telemetry
     except Exception:
         log.warning("rag_context_failed", exc_info=True)
-        return ""
+        telemetry["rag_status"] = "error"
+        return "", telemetry
 
 
 def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> ChatResponse:
@@ -60,10 +78,14 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
     profile = get_or_create_profile(user_id)
 
     # 5. RAG context
-    rag_context = _build_rag_context(message)
+    rag_context, rag_telemetry = _build_rag_context(message)
     system = get_system_prompt(profile=profile)
     if rag_context:
         system = f"{system}\n\n{rag_context}"
+
+    # Telemetria de RAG — observacional, não altera prompt nem resposta.
+    # Permite detectar degradação silenciosa (rag_status != "ok" ou rag_used False).
+    log.info("rag_context", **rag_telemetry)
 
     # 6. Chama LLM via factory
     llm = get_llm_client()
@@ -80,6 +102,9 @@ def handle_chat(user_id: UUID, message: str, conversation_id: UUID | None) -> Ch
         tokens_in=result.input_tokens,
         tokens_out=result.output_tokens,
         stop_reason=result.stop_reason,
+        rag_used=rag_telemetry["rag_used"],
+        rag_chunks=rag_telemetry["rag_chunks"],
+        rag_status=rag_telemetry["rag_status"],
     )
 
     # 7. Persiste resposta do assistente
