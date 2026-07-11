@@ -132,7 +132,7 @@ Cole o conteúdo abaixo (substitua os valores reais):
 ```env
 # LLM
 LLM_PROVIDER=anthropic
-LLM_MODEL=claude-sonnet-4-6
+LLM_MODEL=claude-sonnet-4-5
 ANTHROPIC_API_KEY=sua-chave-anthropic
 OPENAI_API_KEY=sua-chave-openai
 
@@ -154,7 +154,7 @@ SUPABASE_JWT_SECRET=seu-jwt-secret
 
 # Stories
 STORIES_LLM_PROVIDER=anthropic
-STORIES_LLM_MODEL=claude-sonnet-4-6
+STORIES_LLM_MODEL=claude-sonnet-4-5
 ELEVENLABS_API_KEY=
 
 # Storage

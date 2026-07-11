@@ -19,6 +19,9 @@ class CompletionResult:
     model_used: str
 
 
+DEFAULT_MAX_TOKENS = 2048
+
+
 class LLMClient(ABC):
     @abstractmethod
     def complete(
@@ -26,6 +29,7 @@ class LLMClient(ABC):
         messages: list[LLMMessage],
         system: str,
         model: str,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
         **kwargs,
     ) -> CompletionResult:
         ...

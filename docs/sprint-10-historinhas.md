@@ -65,7 +65,7 @@
 **2.6** `app/core/config.py` — adicionar settings:
 - `ELEVENLABS_API_KEY: str`
 - `STORIES_LLM_PROVIDER: Literal["anthropic", "openai"] = "anthropic"` (independente do chat)
-- `STORIES_LLM_MODEL: str = "claude-sonnet-4-6"`
+- `STORIES_LLM_MODEL: str = "claude-sonnet-4-5"`
 - `SUPABASE_STORAGE_BUCKET_AUDIOS: str = "story-audios"`
 - `AUDIO_EXPIRY_DAYS: int = 7`
 

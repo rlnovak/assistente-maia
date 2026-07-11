@@ -44,8 +44,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
 
     # === Stories LLM (independente do chat) ===
-    STORIES_LLM_PROVIDER: Literal["anthropic", "openai"] = "anthropic"
-    STORIES_LLM_MODEL: str = "claude-sonnet-4-6"
+    STORIES_LLM_PROVIDER: Literal["anthropic", "openai", "qwen"] = "anthropic"
+    STORIES_LLM_MODEL: str = "claude-sonnet-4-5"
+
+    # === Qwen / DashScope (usado quando provider=qwen) ===
+    DASHSCOPE_API_KEY: str = ""
 
     # === Title generation (barato, independente do LLM_MODEL) ===
     TITLE_LLM_MODEL: str = "gpt-4o-mini"
@@ -75,6 +78,20 @@ class Settings(BaseSettings):
                     f"LLM_MODEL inválido para provider openai: '{self.LLM_MODEL}'. "
                     "Deve começar com 'gpt-'."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_stories_llm_config(self) -> "Settings":
+        required_key = {
+            "anthropic": ("ANTHROPIC_API_KEY", self.ANTHROPIC_API_KEY),
+            "openai": ("OPENAI_API_KEY", self.OPENAI_API_KEY),
+            "qwen": ("DASHSCOPE_API_KEY", self.DASHSCOPE_API_KEY),
+        }[self.STORIES_LLM_PROVIDER]
+        name, value = required_key
+        if not value:
+            raise ValueError(
+                f"{name} obrigatória quando STORIES_LLM_PROVIDER={self.STORIES_LLM_PROVIDER}"
+            )
         return self
 
     @model_validator(mode="after")

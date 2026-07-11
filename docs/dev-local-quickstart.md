@@ -28,7 +28,7 @@ Edite `.env` com os valores reais:
 ```env
 # LLM
 LLM_PROVIDER=anthropic
-LLM_MODEL=claude-sonnet-4-6
+LLM_MODEL=claude-sonnet-4-5
 ANTHROPIC_API_KEY=sua-chave-aqui
 OPENAI_API_KEY=sua-chave-aqui
 
@@ -49,7 +49,7 @@ SUPABASE_JWT_SECRET=seu-jwt-secret
 
 # Stories
 STORIES_LLM_PROVIDER=anthropic
-STORIES_LLM_MODEL=claude-sonnet-4-6
+STORIES_LLM_MODEL=claude-sonnet-4-5
 ELEVENLABS_API_KEY=   # deixar vazio até ter a key
 
 # Storage
@@ -169,7 +169,7 @@ Editar `assistente-maia/.env`:
 ```env
 # Usar Anthropic
 LLM_PROVIDER=anthropic
-LLM_MODEL=claude-sonnet-4-6
+LLM_MODEL=claude-sonnet-4-5
 
 # Usar OpenAI
 LLM_PROVIDER=openai

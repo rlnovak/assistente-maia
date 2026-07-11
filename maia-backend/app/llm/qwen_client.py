@@ -3,6 +3,10 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from app.llm.llm_client import DEFAULT_MAX_TOKENS, CompletionResult, LLMClient, LLMMessage
 
+# Endpoint compatível com OpenAI da Alibaba (DashScope, região internacional).
+# Região China: https://dashscope.aliyuncs.com/compatible-mode/v1
+DASHSCOPE_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+
 
 def _is_retryable(exc: BaseException) -> bool:
     if isinstance(exc, openai.RateLimitError):
@@ -12,9 +16,11 @@ def _is_retryable(exc: BaseException) -> bool:
     return False
 
 
-class OpenAIClient(LLMClient):
-    def __init__(self, api_key: str) -> None:
-        self._client = openai.OpenAI(api_key=api_key)
+class QwenClient(LLMClient):
+    """Qwen via API compatível com OpenAI (DashScope)."""
+
+    def __init__(self, api_key: str, base_url: str = DASHSCOPE_BASE_URL) -> None:
+        self._client = openai.OpenAI(api_key=api_key, base_url=base_url)
 
     @retry(
         retry=retry_if_exception(_is_retryable),
@@ -30,14 +36,14 @@ class OpenAIClient(LLMClient):
         max_tokens: int = DEFAULT_MAX_TOKENS,
         **kwargs,
     ) -> CompletionResult:
-        # OpenAI: system prompt como primeira mensagem com role="system"
-        openai_messages = [{"role": "system", "content": system}]
-        openai_messages += [{"role": m.role, "content": m.content} for m in messages]
+        qwen_messages = [{"role": "system", "content": system}]
+        qwen_messages += [{"role": m.role, "content": m.content} for m in messages]
 
+        # DashScope aceita max_tokens, não max_completion_tokens
         response = self._client.chat.completions.create(
             model=model,
-            messages=openai_messages,
-            max_completion_tokens=max_tokens,
+            messages=qwen_messages,
+            max_tokens=max_tokens,
             **kwargs,
         )
         choice = response.choices[0]

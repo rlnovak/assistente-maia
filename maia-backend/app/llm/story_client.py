@@ -32,7 +32,15 @@ def _parse_story_json(raw: str) -> dict:
     try:
         data = json.loads(clean)
     except json.JSONDecodeError as e:
-        raise StoryParseError(f"JSON inválido na resposta do modelo: {e}") from e
+        # Alguns modelos prefaciam o JSON com texto ("Claro! Aqui está...").
+        # Recorta do primeiro '{' até o último '}' e tenta de novo.
+        start, end = clean.find("{"), clean.rfind("}")
+        if start == -1 or end <= start:
+            raise StoryParseError(f"JSON inválido na resposta do modelo: {e}") from e
+        try:
+            data = json.loads(clean[start : end + 1])
+        except json.JSONDecodeError as e2:
+            raise StoryParseError(f"JSON inválido na resposta do modelo: {e2}") from e2
 
     required = {"titulo", "historia", "moral", "personagens", "tags"}
     missing = required - data.keys()
@@ -51,6 +59,9 @@ def _get_story_llm_client():
     if provider == "openai":
         from app.llm.openai_client import OpenAIClient
         return OpenAIClient(api_key=settings.OPENAI_API_KEY), settings.STORIES_LLM_MODEL
+    if provider == "qwen":
+        from app.llm.qwen_client import QwenClient
+        return QwenClient(api_key=settings.DASHSCOPE_API_KEY), settings.STORIES_LLM_MODEL
     raise ValueError(f"STORIES_LLM_PROVIDER inválido: {provider}")
 
 

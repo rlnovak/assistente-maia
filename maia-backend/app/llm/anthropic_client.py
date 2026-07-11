@@ -1,10 +1,7 @@
 import anthropic
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from app.llm.llm_client import CompletionResult, LLMClient, LLMMessage
-
-_SUPPORTED_MODELS = {"claude-sonnet-4-5", "claude-haiku-4-5-20251001"}
-_MAX_TOKENS = 2048
+from app.llm.llm_client import DEFAULT_MAX_TOKENS, CompletionResult, LLMClient, LLMMessage
 
 
 def _is_retryable(exc: BaseException) -> bool:
@@ -30,6 +27,7 @@ class AnthropicClient(LLMClient):
         messages: list[LLMMessage],
         system: str,
         model: str,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
         **kwargs,
     ) -> CompletionResult:
         anthropic_messages = [
@@ -39,7 +37,7 @@ class AnthropicClient(LLMClient):
             model=model,
             system=system,
             messages=anthropic_messages,
-            max_tokens=_MAX_TOKENS,
+            max_tokens=max_tokens,
             **kwargs,
         )
         return CompletionResult(
